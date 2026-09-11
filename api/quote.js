@@ -1,130 +1,113 @@
-import { put, list } from "@vercel/blob";
+import { put, get } from "@vercel/blob";
 import crypto from "crypto";
 
-const BLOB_NAME = "quote.json";
+const FILE = "quote.json";
 
-function createToken() {
+function token() {
     return crypto
         .createHmac("sha256", process.env.ADMIN_PASSWORD)
-        .update("quote-admin")
+        .update("afewquotes-admin")
         .digest("hex");
 }
 
-function isLoggedIn(request) {
+function authenticated(request) {
     const cookie = request.headers.get("cookie") || "";
-    const match = cookie.match(/(?:^|;\s*)quote_admin=([^;]+)/);
+
+    const match = cookie
+        .split(";")
+        .map(x => x.trim())
+        .find(x => x.startsWith("quote_admin="));
 
     if (!match) return false;
 
-    const token = match[1];
-    const expected = createToken();
-
-    if (token.length !== expected.length) return false;
-
-    return crypto.timingSafeEqual(
-        Buffer.from(token),
-        Buffer.from(expected)
+    const supplied = decodeURIComponent(
+        match.substring("quote_admin=".length)
     );
+
+    const expected = token();
+
+    return supplied === expected;
 }
 
-async function getQuote() {
-    const result = await list({
-        prefix: BLOB_NAME,
-        limit: 1
-    });
+async function readQuote() {
+    try {
+        const result = await get(FILE, {
+            access: "private",
+            useCache: false
+        });
 
-    if (!result.blobs.length) {
+        if (!result) return "Testing";
+
+        const text = await new Response(result.stream).text();
+        const data = JSON.parse(text);
+
+        return data.quote || "Testing";
+    } catch {
         return "Testing";
     }
-
-    const response = await fetch(result.blobs[0].url);
-    const data = await response.json();
-
-    return data.quote || "Testing";
 }
 
 export async function GET() {
-    return Response.json({
-        quote: await getQuote()
-    });
+    const quote = await readQuote();
+
+    return Response.json({ quote });
 }
 
 export async function POST(request) {
-    try {
-        const { password } = await request.json();
+    const { password } = await request.json();
 
-        if (password !== process.env.ADMIN_PASSWORD) {
-            return Response.json(
-                { error: "Incorrect password" },
-                { status: 401 }
-            );
-        }
-
-        const token = createToken();
-
-        return new Response(
-            JSON.stringify({ success: true }),
-            {
-                status: 200,
-                headers: {
-                    "Content-Type": "application/json",
-
-                    "Set-Cookie":
-                        `quote_admin=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`
-                }
-            }
-        );
-
-    } catch (error) {
+    if (password !== process.env.ADMIN_PASSWORD) {
         return Response.json(
-            { error: "Login failed" },
-            { status: 400 }
+            { error: "Incorrect password" },
+            { status: 401 }
         );
     }
+
+    return new Response(
+        JSON.stringify({ success: true }),
+        {
+            status: 200,
+            headers: {
+                "Content-Type": "application/json",
+                "Set-Cookie":
+                    `quote_admin=${encodeURIComponent(token())}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`
+            }
+        }
+    );
 }
 
 export async function PUT(request) {
-
-    if (!isLoggedIn(request)) {
+    if (!authenticated(request)) {
         return Response.json(
             { error: "Not logged in" },
             { status: 401 }
         );
     }
 
-    try {
-        const { quote } = await request.json();
+    const { quote } = await request.json();
 
-        if (!quote || typeof quote !== "string") {
-            return Response.json(
-                { error: "Invalid quote" },
-                { status: 400 }
-            );
-        }
-
-        await put(
-            BLOB_NAME,
-            JSON.stringify({
-                quote: quote.trim()
-            }),
-            {
-                access: "public",
-                addRandomSuffix: false,
-                allowOverwrite: true
-            }
-        );
-
-        return Response.json({
-            success: true,
-            quote: quote.trim()
-        });
-
-    } catch (error) {
-        console.error(error);
-
+    if (!quote || typeof quote !== "string") {
         return Response.json(
-            { error: "Could not save quote" },
-            { status: 500 }
+            { error: "Invalid quote" },
+            { status: 400 }
         );
     }
+
+    await put(
+        FILE,
+        JSON.stringify({
+            quote: quote.trim()
+        }),
+        {
+            access: "private",
+            addRandomSuffix: false,
+            allowOverwrite: true,
+            contentType: "application/json"
+        }
+    );
+
+    return Response.json({
+        success: true,
+        quote: quote.trim()
+    });
 }
