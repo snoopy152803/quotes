@@ -3,10 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quotes</title>
+    <title>Some Quotes</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        h1 {
+            font-size: 40px;
+        }
+
+        p {
+            font-size: 28px;
+        }
+    </style>
 </head>
+
 <body>
     <h1>The Quote</h1>
-    <p>Testing.</p>
+    <p id="quote">Loading...</p>
+
+    <script>
+        async function loadQuote() {
+            try {
+                const response = await fetch("/api/quote");
+                const data = await response.json();
+
+                document.getElementById("quote").textContent =
+                    data.quote || "No quote available.";
+            } catch {
+                document.getElementById("quote").textContent =
+                    "Unable to load quote.";
+            }
+        }
+
+        loadQuote();
+    </script>
 </body>
 </html>
