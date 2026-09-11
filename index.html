@@ -3,44 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Some Quotes</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, Helvetica, sans-serif;
+            color: white;
+            overflow: hidden;
+
+            background:
+                radial-gradient(circle at 20% 20%, #6c63ff 0%, transparent 35%),
+                radial-gradient(circle at 80% 80%, #00c6ff 0%, transparent 35%),
+                linear-gradient(135deg, #111827, #1e1b4b);
+        }
+
+        /* Floating background circles */
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            animation: float 10s infinite ease-in-out;
+        }
+
+        .bubble:nth-child(1) {
+            width: 180px;
+            height: 180px;
+            top: 10%;
+            left: 5%;
+        }
+
+        .bubble:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            bottom: 15%;
+            right: 10%;
+            animation-delay: 2s;
+        }
+
+        .bubble:nth-child(3) {
+            width: 70px;
+            height: 70px;
+            top: 20%;
+            right: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+            }
+
+            50% {
+                transform: translateY(-30px) translateX(20px);
+            }
+        }
+
+        /* Main layout */
+
+        .page {
+            position: relative;
+            z-index: 2;
+
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 30px;
+        }
+
+        .content {
+            width: 100%;
+            max-width: 850px;
             text-align: center;
-            padding: 60px 20px;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+
+            opacity: 0.8;
+            margin-bottom: 25px;
         }
 
         h1 {
-            font-size: 40px;
+            font-size: clamp(42px, 8vw, 76px);
+            margin: 0 0 40px;
+
+            letter-spacing: -3px;
+
+            background: linear-gradient(
+                90deg,
+                #ffffff,
+                #c7d2fe,
+                #ffffff
+            );
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        p {
-            font-size: 28px;
+        /* Quote card */
+
+        .quote-card {
+            position: relative;
+
+            padding: 65px 60px;
+
+            border-radius: 30px;
+
+            background: rgba(255, 255, 255, 0.10);
+
+            border: 1px solid rgba(255, 255, 255, 0.18);
+
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.35),
+                inset 0 1px rgba(255, 255, 255, 0.15);
+
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+
+            transition: transform 0.3s ease;
+        }
+
+        .quote-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Big quotation marks */
+
+        .quote-mark {
+            position: absolute;
+
+            font-family: Georgia, serif;
+            font-size: 130px;
+
+            line-height: 1;
+
+            opacity: 0.15;
+        }
+
+        .quote-mark.left {
+            top: 10px;
+            left: 25px;
+        }
+
+        .quote-mark.right {
+            bottom: -30px;
+            right: 25px;
+        }
+
+        #quote {
+            position: relative;
+            z-index: 2;
+
+            margin: 0;
+
+            font-family: Georgia, "Times New Roman", serif;
+
+            font-size: clamp(25px, 4vw, 40px);
+            line-height: 1.5;
+
+            letter-spacing: 0.2px;
+        }
+
+        /* Button */
+
+        .button-container {
+            margin-top: 35px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+
+            padding: 14px 28px;
+
+            border-radius: 999px;
+
+            font-size: 16px;
+            font-weight: bold;
+
+            color: #111827;
+
+            background: white;
+
+            cursor: pointer;
+
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-3px) scale(1.03);
+
+            box-shadow:
+                0 15px 35px rgba(0, 0, 0, 0.35);
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        /* Quote loading animation */
+
+        .fade {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            opacity: 0.5;
+        }
+
+        /* Footer */
+
+        footer {
+            margin-top: 30px;
+
+            font-size: 13px;
+
+            opacity: 0.55;
+        }
+
+        /* Mobile */
+
+        @media (max-width: 600px) {
+
+            .page {
+                padding: 20px;
+            }
+
+            h1 {
+                margin-bottom: 25px;
+            }
+
+            .quote-card {
+                padding: 55px 25px;
+                border-radius: 24px;
+            }
+
+            #quote {
+                font-size: 25px;
+            }
+
+            .quote-mark {
+                font-size: 90px;
+            }
+
+            .quote-mark.left {
+                left: 10px;
+            }
+
+            .quote-mark.right {
+                right: 10px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <h1>The Quote</h1>
-    <p id="quote">Loading...</p>
+
+    <!-- Background decoration -->
+
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+    <div class="bubble"></div>
+
+    <!-- Main content -->
+
+    <main class="page">
+
+        <div class="content">
+
+            <div class="logo">
+                Some Quotes
+            </div>
+
+            <h1>
+                The Quote
+            </h1>
+
+            <div class="quote-card">
+
+                <div class="quote-mark left">
+                    “
+                </div>
+
+                <p id="quote" class="loading">
+                    Loading...
+                </p>
+
+                <div class="quote-mark right">
+                    ”
+                </div>
+
+            </div>
+
+            <div class="button-container">
+                <button onclick="loadQuote()">
+                    ✨ Refresh Quote
+                </button>
+            </div>
+
+            <footer>
+                A little inspiration, whenever you need it.
+            </footer>
+
+        </div>
+
+    </main>
 
     <script>
+
         async function loadQuote() {
+
+            const quoteElement =
+                document.getElementById("quote");
+
+            // Start loading animation
+            quoteElement.classList.remove("fade");
+            quoteElement.classList.add("loading");
+
             try {
-                const response = await fetch("/api/quote");
+
+                const response = await fetch("/api/quote", {
+                    method: "GET",
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to load quote");
+                }
+
                 const data = await response.json();
 
-                document.getElementById("quote").textContent =
-                    data.quote || "No quote available.";
-            } catch {
-                document.getElementById("quote").textContent =
-                    "Unable to load quote.";
+                quoteElement.textContent =
+                    data.quote || "Testing";
+
+                // Re-trigger animation
+                void quoteElement.offsetWidth;
+
+                quoteElement.classList.remove("loading");
+                quoteElement.classList.add("fade");
+
+            } catch (error) {
+
+                console.error(error);
+
+                quoteElement.textContent =
+                    "Unable to load the quote.";
+
+                quoteElement.classList.remove("loading");
+                quoteElement.classList.add("fade");
             }
         }
 
+        // Load quote when page opens
         loadQuote();
+
     </script>
+
 </body>
 </html>
