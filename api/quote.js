@@ -3,29 +3,31 @@ import crypto from "crypto";
 
 const BLOB_NAME = "quote.json";
 
-function makeToken() {
+function createToken() {
     return crypto
         .createHmac("sha256", process.env.ADMIN_PASSWORD)
         .update("quote-admin")
         .digest("hex");
 }
 
-function validToken(request) {
-    const cookies = request.headers.get("cookie") || "";
-
-    const match = cookies.match(/quote_admin=([^;]+)/);
+function isLoggedIn(request) {
+    const cookie = request.headers.get("cookie") || "";
+    const match = cookie.match(/(?:^|;\s*)quote_admin=([^;]+)/);
 
     if (!match) return false;
 
-    const expected = makeToken();
+    const token = match[1];
+    const expected = createToken();
+
+    if (token.length !== expected.length) return false;
 
     return crypto.timingSafeEqual(
-        Buffer.from(match[1]),
+        Buffer.from(token),
         Buffer.from(expected)
     );
 }
 
-async function getStoredQuote() {
+async function getQuote() {
     const result = await list({
         prefix: BLOB_NAME,
         limit: 1
@@ -35,34 +37,30 @@ async function getStoredQuote() {
         return "Testing";
     }
 
-    const blob = result.blobs[0];
-
-    const response = await fetch(blob.url);
+    const response = await fetch(result.blobs[0].url);
     const data = await response.json();
 
     return data.quote || "Testing";
 }
 
 export async function GET() {
-    const quote = await getStoredQuote();
-
     return Response.json({
-        quote
+        quote: await getQuote()
     });
 }
 
 export async function POST(request) {
     try {
-        const body = await request.json();
+        const { password } = await request.json();
 
-        if (body.password !== process.env.ADMIN_PASSWORD) {
+        if (password !== process.env.ADMIN_PASSWORD) {
             return Response.json(
                 { error: "Incorrect password" },
                 { status: 401 }
             );
         }
 
-        const token = makeToken();
+        const token = createToken();
 
         return new Response(
             JSON.stringify({ success: true }),
@@ -70,12 +68,14 @@ export async function POST(request) {
                 status: 200,
                 headers: {
                     "Content-Type": "application/json",
+
                     "Set-Cookie":
-                        `quote_admin=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`
+                        `quote_admin=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`
                 }
             }
         );
-    } catch {
+
+    } catch (error) {
         return Response.json(
             { error: "Login failed" },
             { status: 400 }
@@ -84,35 +84,29 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
-    if (!validToken(request)) {
+
+    if (!isLoggedIn(request)) {
         return Response.json(
-            { error: "Not authorized" },
+            { error: "Not logged in" },
             { status: 401 }
         );
     }
 
     try {
-        const body = await request.json();
+        const { quote } = await request.json();
 
-        if (typeof body.quote !== "string") {
+        if (!quote || typeof quote !== "string") {
             return Response.json(
                 { error: "Invalid quote" },
                 { status: 400 }
             );
         }
 
-        const quote = body.quote.trim();
-
-        if (!quote) {
-            return Response.json(
-                { error: "Quote cannot be empty" },
-                { status: 400 }
-            );
-        }
-
         await put(
             BLOB_NAME,
-            JSON.stringify({ quote }),
+            JSON.stringify({
+                quote: quote.trim()
+            }),
             {
                 access: "public",
                 addRandomSuffix: false,
@@ -122,14 +116,14 @@ export async function PUT(request) {
 
         return Response.json({
             success: true,
-            quote
+            quote: quote.trim()
         });
 
     } catch (error) {
         console.error(error);
 
         return Response.json(
-            { error: "Failed to save quote" },
+            { error: "Could not save quote" },
             { status: 500 }
         );
     }
