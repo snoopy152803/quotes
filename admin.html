@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Admin</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 60px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        input,
+        textarea,
+        button {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        button {
+            cursor: pointer;
+            background: black;
+            color: white;
+            border: none;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        #editor {
+            display: none;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Quote Admin</h1>
+
+    <div id="login">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+        <button onclick="login()">Log in</button>
+    </div>
+
+    <div id="editor">
+        <label>Current quote</label>
+        <textarea id="quote"></textarea>
+
+        <button onclick="saveQuote()">Save Quote</button>
+
+        <p id="status"></p>
+    </div>
+
+    <script>
+        async function login() {
+            const password = document.getElementById("password").value;
+
+            const response = await fetch("/api/quote", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ password })
+            });
+
+            if (!response.ok) {
+                alert("Incorrect password.");
+                return;
+            }
+
+            document.getElementById("login").style.display = "none";
+            document.getElementById("editor").style.display = "block";
+
+            loadQuote();
+        }
+
+        async function loadQuote() {
+            const response = await fetch("/api/quote");
+            const data = await response.json();
+
+            document.getElementById("quote").value = data.quote || "";
+        }
+
+        async function saveQuote() {
+            const quote = document.getElementById("quote").value;
+
+            const response = await fetch("/api/quote", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ quote })
+            });
+
+            const status = document.getElementById("status");
+
+            if (response.ok) {
+                status.textContent = "Quote saved!";
+            } else {
+                status.textContent = "You are not logged in.";
+            }
+        }
+    </script>
+
+</body>
+</html>
