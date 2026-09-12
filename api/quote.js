@@ -29,28 +29,31 @@ function authenticated(request) {
     return supplied === expected;
 }
 
-async function readQuote() {
+async function readQuoteData() {
     try {
         const result = await get(FILE, {
             access: "private",
             useCache: false
         });
 
-        if (!result) return "Testing";
+        if (!result) return { quote: "Testing", persistent: false };
 
         const text = await new Response(result.stream).text();
         const data = JSON.parse(text);
 
-        return data.quote || "Testing";
+        return {
+            quote: data.quote || "Testing",
+            persistent: Boolean(data.persistent)
+        };
     } catch {
-        return "Testing";
+        return { quote: "Testing", persistent: false };
     }
 }
 
 export async function GET() {
-    const quote = await readQuote();
+    const data = await readQuoteData();
 
-    return Response.json({ quote });
+    return Response.json(data);
 }
 
 export async function POST(request) {
@@ -84,7 +87,7 @@ export async function PUT(request) {
         );
     }
 
-    const { quote } = await request.json();
+    const { quote, persistent } = await request.json();
 
     if (!quote || typeof quote !== "string") {
         return Response.json(
@@ -96,7 +99,8 @@ export async function PUT(request) {
     await put(
         FILE,
         JSON.stringify({
-            quote: quote.trim()
+            quote: quote.trim(),
+            persistent: Boolean(persistent)
         }),
         {
             access: "private",
@@ -108,6 +112,7 @@ export async function PUT(request) {
 
     return Response.json({
         success: true,
-        quote: quote.trim()
+        quote: quote.trim(),
+        persistent: Boolean(persistent)
     });
 }
