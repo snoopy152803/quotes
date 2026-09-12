@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { put, get } from "@vercel/blob";
 
 const FILE = "quote.json";
 
@@ -26,6 +26,24 @@ async function fetchRandomQuote() {
     return quote;
 }
 
+async function isPersistent() {
+    try {
+        const result = await get(FILE, {
+            access: "private",
+            useCache: false
+        });
+
+        if (!result) return false;
+
+        const text = await new Response(result.stream).text();
+        const data = JSON.parse(text);
+
+        return Boolean(data.persistent);
+    } catch {
+        return false;
+    }
+}
+
 // This is called by Vercel Cron once a day.
 // GET is used because Vercel Cron only sends GET requests.
 export async function GET(request) {
@@ -41,11 +59,19 @@ export async function GET(request) {
     }
 
     try {
+        if (await isPersistent()) {
+            return Response.json({
+                success: true,
+                skipped: true,
+                reason: "Current quote is set to persistent"
+            });
+        }
+
         const quote = await fetchRandomQuote();
 
         await put(
             FILE,
-            JSON.stringify({ quote }),
+            JSON.stringify({ quote, persistent: false }),
             {
                 access: "private",
                 addRandomSuffix: false,
