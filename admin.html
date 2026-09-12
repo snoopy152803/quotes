@@ -68,6 +68,11 @@
         <label>Current quote</label>
         <textarea id="quote"></textarea>
 
+        <label style="display:flex; align-items:center; gap:10px; margin-top:20px;">
+            <input type="checkbox" id="persistent" style="width:auto; padding:0; margin:0;">
+            Keep this quote persistent (don't auto-change at midnight)
+        </label>
+
         <button onclick="saveQuote()">Save Quote</button>
 
         <p id="status"></p>
@@ -101,23 +106,27 @@
             const data = await response.json();
 
             document.getElementById("quote").value = data.quote || "";
+            document.getElementById("persistent").checked = Boolean(data.persistent);
         }
 
         async function saveQuote() {
             const quote = document.getElementById("quote").value;
+            const persistent = document.getElementById("persistent").checked;
 
             const response = await fetch("/api/quote", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({ quote })
+                body: JSON.stringify({ quote, persistent })
             });
 
             const status = document.getElementById("status");
 
             if (response.ok) {
-                status.textContent = "Quote saved!";
+                status.textContent = persistent
+                    ? "Quote saved! It will stay until you change it."
+                    : "Quote saved! It will auto-change at midnight.";
             } else {
                 status.textContent = "You are not logged in.";
             }
